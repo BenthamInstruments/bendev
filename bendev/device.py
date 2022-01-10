@@ -15,8 +15,8 @@ class Device:
     """Simple High Level text-based SCPI over USB/HID communication interface."""
     def __init__(self, serial_number=None, product_string=None, manufacturer_string="Bentham", encoding="ascii"):
         """connect to the first device matching exact serial_number (if present) or
-        containing product_string (if present) or containing manufacturer. Raises
-        ExternalDeviceNotFound exception if no device matches."""
+        containing product_string (if present) or containing manufacturer_string.
+        Raises ExternalDeviceNotFound exception if no device matches."""
         self.device = None
         self.encoding = encoding
         found_devices = hid.enumerate()
