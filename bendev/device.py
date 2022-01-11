@@ -12,11 +12,30 @@ _ON_WINDOWS = (sys.platform == "win32")
 _MAX_CHARACTERS = 64 # max size of USB HID packet
 
 class Device: 
-    """Simple High Level text-based SCPI over USB/HID communication interface."""
+    """Simple High Level text-based SCPI over USB/HID communication interface 
+    device class. Instantiation of this class connects to a device or raises an
+    exception. Devices can be identified by serial number, product string, or
+    manufacturer string. The connection can be closed manually or automatically
+    when the instance is destroyed.
+    
+    Also functions as a context manager:
+    >>> with bendev.Device() as device:
+    ...     device.write("SYSTEM:LOCAL")
+
+    The messages are encoded as ascii (configurable on initialisation) but
+    otherwise sent unaltered as USB HID packets.
+    """
+
     def __init__(self, serial_number=None, product_string=None, manufacturer_string="Bentham", encoding="ascii"):
-        """connect to the first device matching exact serial_number (if present) or
+        """Connects to the first device matching exact serial_number (if present) or
         containing product_string (if present) or containing manufacturer_string.
-        Raises ExternalDeviceNotFound exception if no device matches."""
+        Raises ExternalDeviceNotFound exception if no device matches.
+        
+        Arguments:
+            serial_number: string containing the exact serial number | None
+            product_string: string containing part of the target product name | None
+            manufacturer_string: string containing part of the device's manufacturer
+        """
         self.device = None
         self.encoding = encoding
         found_devices = hid.enumerate()
@@ -31,20 +50,30 @@ class Device:
                 if manufacturer_string in dev["manufacturer_string"]:
                     break
             else:
-                raise 
+                raise ValueError(
+                    "Missing qualifier; serial_number, product_string and manufacturer_string can't all be None."
+                )
         else:
             raise ExternalDeviceNotFound(f"Can't find device ({serial_number or product_string})")
         self.device = hid.device()
         self.device.open(dev["vendor_id"], dev["product_id"], dev["serial_number"])
         self.device.set_nonblocking(True) # we'll handle waiting outselves
     
-    def verify_open(self):
+    def _verify_open(self):
         if not self.device:
             raise DeviceClosed("This device connection is not open.")
     
     def write(self, command):
-        """write a max 64 character command to the device"""
-        self.verify_open()
+        """Writes a max 64 character command to the device. Raises IOError on
+        commands that are too long.
+
+        Arguments:
+            command: python string containing the command
+
+        Returns:
+            None
+        """
+        self._verify_open()
         if (len(command) > _MAX_CHARACTERS):
            raise IOError(f"Tried to send {len(command)} characters, max is {_MAX_CHARACTERS}")
         if _ON_WINDOWS: 
@@ -52,10 +81,20 @@ class Device:
                     #(arg may be _MAX_CHARACTERS+1 chars in that case, that's ok)
         self.device.write(command.encode(self.encoding))
 
-    def read(self, read_interval, timeout):
-        """read every read_interval seconds until a the device sends a message
-        or timeout seconds have elapsed."""
-        self.verify_open()
+    def read(self, timeout, read_interval):
+        """Reads every read_interval seconds until the device sends a message,
+        or until timeout seconds have elapsed, in which case a TimeoutError is
+        raised.
+
+        Arguments:
+            timeout: number, time in seconds before raising a TimeoutError if no
+                message is received. 0 or None means never time out.
+            read_interval: number, time in seconds to sleep between attempts to read
+        
+        Returns:
+            the device reply as a string
+        """
+        self._verify_open()
         read_start_time = time.time()
         while len(block := self.device.read(_MAX_CHARACTERS)) == 0:
             time.sleep(read_interval)
@@ -64,15 +103,28 @@ class Device:
         return bytes(block).decode(self.encoding).rstrip("\r\n\x00")
 
     def query(self, command, timeout=0, read_interval=0.05):
-        """Send a command and try to read a reply every read_interval seconds until
-        one arrives or timeout seconds have elapsed."""
+        """Sends a command and tries to read a reply every read_interval seconds 
+        until one arrives, or until timeout seconds have elapsed, in which case a
+        TimeoutError is raised.
+
+        Arguments:
+            command: string containing the command to send
+            timeout: number, time in seconds before raising a TimeoutError if no
+                message is received. 0 or None means never time out. Default: 0
+            read_interval: number, time in seconds to sleep between attempts to read.
+                Default: 0.05
+        
+        Returns:
+            the device reply as a string
+        """
         self.write(command)
         return self.read(read_interval=read_interval, timeout=timeout)
     
     def __del__(self):
-        self._close()
+        self.close()
 
-    def _close(self):
+    def close(self):
+        """Close communication with the device."""
         if self.device:
             self.device.close()
             self.device = None
@@ -81,23 +133,35 @@ class Device:
         return self
     
     def __exit__(self, type, value, traceback):
-        self._close()
-        return False
+        self.close()
+        return False # do not catch exceptions
 
-def list_connected_devices(manufacturer="Bentham", product=None, verbose=False):
-    """list all the connected HID devices that match the manufacturer or product.
-    Returns a list of device dictionaries. If verbose: print a summary.
+def list_connected_devices(manufacturer_string="Bentham", product_string=None, verbose=False):
+    """list all the connected HID devices that match the manufacturer_string or
+    product_string. If a given string is found within the appropriate device
+    descriptor (even partially), the device is considered to match.  Captialisation
+    is not considered. If both qualifiers are None, all devices are returned.
+
+    Arguments:
+        manufacturer_string: string containing the name of the manufacturer of matching
+            devices | None
+        product_string: string containing the product name for matching devices | None
+        verbose: boolean indicating whether or not to also print out matching devices
+            to stdout
+    
+    Returns:
+        list of dictionaries containing string:string device descriptor information
     """
     if verbose:
         print ("Connected Devices:")
     devices = hid.enumerate()
     filtered_devices = []
     for i, device in enumerate(sorted(devices, key=lambda d: d["path"])):
-        if manufacturer is not None and\
-            manufacturer.upper() not in device['manufacturer_string'].upper(): 
+        if manufacturer_string is not None and\
+            manufacturer_string.upper() not in device['manufacturer_string'].upper(): 
             continue
-        if product is not None and\
-            product.upper() not in device['product_string'].upper(): 
+        if product_string is not None and\
+            product_string.upper() not in device['product_string'].upper(): 
             continue
         if verbose:
             print (f"Device {i+1}: ", end="")

@@ -18,7 +18,7 @@ Usage
 
 bendev devices can be instantiated in context managers:
 
-```
+``` python
 >>> import bendev
 >>> with bendev.Device as dev:
 ...     print(dev.query("*IDN?"))
@@ -27,7 +27,7 @@ bendev devices can be instantiated in context managers:
 
 or normally:
 
-```
+``` python
 >>> import bendev
 >>> my_tls = bendev.Device()
 >>> my_tls.write("SYSTEM:REMOTE")
@@ -37,18 +37,18 @@ or normally:
 
 Devices can be opened by serial number, product string or manufacturer string:
 
-```
+``` python
 >>> import bendev
 >>> device_a = bendev.Device(serial_number="99999/9")
 >>> device_b = bendev.Device(product_string="TLS120Xe")
 >>> device_c = bendev.Device(manufacturer_string="Bentham")
 ```
 
-For product_string and manufacturer string, it is sufficient if the given substring is present in the device descriptor. The serial number has to be exact. Manufacturer_string defaults to "Bentham".
+For `product_string` and `manufacturer_string`, it is sufficient if the given substring is present in the device descriptor. The `serial_number` has to be exact. `manufacturer_string` defaults to `"Bentham"`.
 
 The package can also tell you what devices are connected:
 
-```
+``` python
 >>> import bendev
 >>> devs=bendev.list_connected_devices(verbose=True)
 Connected Devices:
