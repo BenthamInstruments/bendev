@@ -20,7 +20,7 @@ bendev devices can be instantiated in context managers:
 
 ``` python
 >>> import bendev
->>> with bendev.Device as dev:
+>>> with bendev.Device() as dev:
 ...     print(dev.query("*IDN?"))
 "Bentham Instruments Ltd.","MSH150_RD_Direct","99999/9","1.2.53"
 ```
