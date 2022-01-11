@@ -4,4 +4,4 @@
 # @copyright Copyright © 2022 by Bentham Instruments Ltd. 
 
 class ExternalDeviceNotFound(IOError): pass
-class DeviceAlreadyClosed(IOError): pass
+class DeviceClosed(IOError): pass

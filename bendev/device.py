@@ -6,7 +6,7 @@
 import sys, time
 import hid # from pip install hidapi
 
-from bendev.exceptions import ExternalDeviceNotFound, DeviceAlreadyClosed
+from bendev.exceptions import ExternalDeviceNotFound, DeviceClosed
 
 _ON_WINDOWS = (sys.platform == "win32")
 _MAX_CHARACTERS = 64 # max size of USB HID packet
@@ -40,7 +40,7 @@ class Device:
     
     def verify_open(self):
         if not self.device:
-            raise DeviceAlreadyClosed("This device connection is not open.")
+            raise DeviceClosed("This device connection is not open.")
     
     def write(self, command):
         """write a max 64 character command to the device"""
