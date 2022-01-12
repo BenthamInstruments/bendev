@@ -14,7 +14,7 @@ controlled with the instance's .write, .read, and .query commands, for example:
 >>> print(myDevice.query("MEAS:CURRENT?"))
 "5.402"
 
-Which devices are connected can be discovered using the list_conneceted_devices
+Which devices are connected can be discovered using the list_connected_devices
 function, which filters the available devices by product name or manufacturer
 and returns a list of device descriptor dictionaries.
 
