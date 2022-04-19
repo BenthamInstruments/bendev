@@ -71,6 +71,7 @@ On ubuntu the python hidapi module has been noted to fail to read device strings
 Version history
 ---------------
 
-v0.0.1 - v0.0.3: test releases
-v0.0.4: first release
-v0.1.0: added ability to use raw hid devices
+- v0.0.1 - v0.0.3: test releases
+- v0.0.4: first release
+- v0.1.0: added ability to use raw hid devices
+- v0.1.1: fix formatting issue
