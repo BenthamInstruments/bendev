@@ -55,3 +55,22 @@ Connected Devices:
 Device 18: Bentham Instruments, TLS120Xe, ...
 ```
 
+Known issues
+------------
+
+On ubuntu the python hidapi module has been noted to fail to read device strings for an unknown reason; until this is resolved the devices may be opened as raw hid devices, bypassing the hidapi module:
+
+``` python
+>>> import bendev
+>>> my_device = bendev.Device(hidraw = "/dev/hidraw2")
+>>> my_device.query("*IDN?")
+'"Bentham Instruments Ltd.","TLS120Xe","12345/6","0.5.3"'
+```
+
+
+Version history
+---------------
+
+v0.0.1 - v0.0.3: test releases
+v0.0.4: first release
+v0.1.0: added ability to use raw hid devices
