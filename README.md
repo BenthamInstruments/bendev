@@ -75,3 +75,4 @@ Version history
 - v0.0.4: first release
 - v0.1.0: added ability to use raw hid devices
 - v0.1.1: fix formatting issue
+- v0.2.0: add reconnect command

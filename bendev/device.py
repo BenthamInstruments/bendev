@@ -65,42 +65,61 @@ class Device:
         vendor_ID, being further down in the list, is ignored and the device
         is solely identified by serial number.
         """
+
+        self.serial_number=serial_number
+        self.product_string=product_string
+        self.manufacturer_string=manufacturer_string
+        self.encoding=encoding
+        self.vendor_id=vendor_id
+        self.product_id=product_id
+        self.hidraw=hidraw
+
+        self._connect()
+
+    def _connect(self):
+        """Connect using the parameters set at __init__ time."""
         self.device = None
-        self.encoding = encoding
-        if hidraw is None:
+        if self.hidraw is None:
             found_devices = hid.enumerate()
             for dev in found_devices:
-                if serial_number:
-                    if serial_number == dev["serial_number"]:
+                if self.serial_number:
+                    if self.serial_number == dev["serial_number"]:
                         break
-                elif product_string:
-                    if product_string in dev["product_string"]:
+                elif self.product_string:
+                    if self.product_string in dev["product_string"]:
                         break
-                elif vendor_id and product_id:
-                    if vendor_id == dev["vendor_id"] and product_id == dev["product_id"]:
+                elif self.vendor_id and self.product_id:
+                    if self.vendor_id == dev["vendor_id"] and self.product_id == dev["product_id"]:
                         break
-                elif vendor_id:
-                    if vendor_id == dev["vendor_id"]:
+                elif self.vendor_id:
+                    if self.vendor_id == dev["vendor_id"]:
                         break
-                elif manufacturer_string:
-                    if manufacturer_string in dev["manufacturer_string"]:
+                elif self.manufacturer_string:
+                    if self.manufacturer_string in dev["manufacturer_string"]:
                         break
                 else:
                     raise ValueError(
                         "Missing qualifier; serial_number, product_string and manufacturer_string can't all be None."
                     )
             else:
-                raise ExternalDeviceNotFound(f"Can't find device ({serial_number or product_string})")
+                raise ExternalDeviceNotFound(f"Can't find device ({self.serial_number or self.product_string})")
             self.device = hid.device()
-            self.device.open(dev["vendor_id"], dev["product_id"], dev["serial_number"] if serial_number else None)
+            self.device.open(dev["vendor_id"], dev["product_id"], dev["serial_number"] if self.serial_number else None)
             self.device.set_nonblocking(True) # we'll handle waiting outselves
         else:
-            self.device = file_device.FileDevice(hidraw)
+            self.device = file_device.FileDevice(self.hidraw)
 
     def _verify_open(self):
         if not self.device:
             raise DeviceClosed("This device connection is not open.")
-    
+
+    def reconnect(self):
+        """Close and reopen this device's connection using the same
+        parameters as the bendev.Device instance was initially initialized
+        with."""
+        self.close()
+        self._connect()
+
     def write(self, command):
         """Writes a max 64 character command to the device. Raises IOError on
         commands that are too long.
