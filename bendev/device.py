@@ -228,7 +228,7 @@ def list_connected_devices(manufacturer_string=None, product_string=None, vendor
             product_string.upper() not in device['product_string'].upper(): 
             continue
         if vendor_ID is not None and\
-            vendor_ID == device['vendor_id']:
+            vendor_ID != device['vendor_id']:
             continue
         if verbose:
             print (f"Device {i+1}: ", end="")
