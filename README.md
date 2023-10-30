@@ -1,7 +1,7 @@
 bendev
 ======
 
-A crossplatform Python package for communicating with the USB/SCPI-enabled Bentham Instruments hardware devices such as the TLS120Xe. The package uses hidapi to send and receive text based commands and replies using the USB HID protocol. 
+A crossplatform Python package for communicating with the USB/SCPI-enabled Bentham Instruments hardware devices such as the TLS120Xe. The package uses hidapi to send and receive text based commands and replies using the USB HID protocol.
 
 Compatibility
 -------------
@@ -76,3 +76,5 @@ Version history
 - v0.1.0: added ability to use raw hid devices
 - v0.1.1: fix formatting issue
 - v0.2.0: add reconnect command
+- v0.3.0: add python 3.11 compatibility
+- v0.3.1: fix inverted vendor ID filter in list_connected_devices
