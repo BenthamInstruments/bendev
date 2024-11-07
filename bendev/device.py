@@ -6,11 +6,14 @@
 import sys, time
 import hid  # from pip install hidapi
 import bendev.file_device as file_device
+import logging
 
 from bendev.exceptions import ExternalDeviceNotFound, DeviceClosed, SCPIError
 
 _ON_WINDOWS = (sys.platform == "win32")
 _MAX_CHARACTERS = 64  # max size of USB HID packet
+
+logger = logging.getLogger("bendev")
 
 
 def scpi_convert(p: str) -> str | int | float:
@@ -112,6 +115,7 @@ class Device:
         """Connect using the parameters set at __init__ time."""
         self.device = None
         if self.path is not None:
+            logger.info(f"Connecting to device at {self.path}")
             self.device = hid.device()
             self.device.open_path(self.path)
             self.device.set_nonblocking(True)  # we'll handle waiting outselves
@@ -143,7 +147,9 @@ class Device:
                 raise ExternalDeviceNotFound(
                     f"Can't find device ({self.serial_number or self.product_string})"
                 )
+            
             self.device = hid.device()
+            logger.info(f"Connecting to device with VID={dev["vendor_id"]}, PID={dev["product_id"]}" + " & SN={dev['serial_number']}" if self.serial_number else "")
             self.device.open(
                 dev["vendor_id"], dev["product_id"],
                 dev["serial_number"] if self.serial_number else None)
@@ -159,6 +165,7 @@ class Device:
         """Close and reopen this device's connection using the same
         parameters as the bendev.Device instance was initially initialized
         with."""
+        logger.info("Reconnecting to device")
         self.close()
         self._connect()
 
@@ -177,6 +184,7 @@ class Device:
             raise IOError(
                 f"Tried to send {len(command)} characters, max is {_MAX_CHARACTERS}"
             )
+        logger.debug(f">>> {command}")
         if _ON_WINDOWS:
             command = "\x00" + command  # hidapi calls on Windows require leading 0.
             #(arg may be _MAX_CHARACTERS+1 chars in that case, that's ok)
@@ -203,7 +211,9 @@ class Device:
             if (timeout != 0) and time.time() - read_start_time > timeout:
                 raise TimeoutError(
                     f"Device failed to respond in {timeout} seconds")
-        return bytes(block).decode(self.encoding).rstrip("\r\n\x00")
+        data = bytes(block).decode(self.encoding).rstrip("\r\n\x00")
+        logger.debug(f"<<< {data}")
+        return data
 
     def query(self, command, timeout=0, read_interval=0.05):
         """Sends a command and tries to read a reply every read_interval 
