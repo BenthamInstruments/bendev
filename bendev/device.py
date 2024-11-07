@@ -109,19 +109,19 @@ class Device:
         self.hidraw = hidraw
         self.path = path
 
+        self.usb_info = None
+
         self._connect()
 
     def _connect(self):
         """Connect using the parameters set at __init__ time."""
         self.device = None
-        if self.path is not None:
-            logger.info(f"Connecting to device at {self.path}")
-            self.device = hid.device()
-            self.device.open_path(self.path)
-            self.device.set_nonblocking(True)  # we'll handle waiting outselves
-        elif self.hidraw is None:
+        if self.hidraw is None:
             found_devices = hid.enumerate()
             for dev in found_devices:
+                if self.path:
+                    if self.path == dev["path"]:
+                        break
                 if self.serial_number:
                     if self.serial_number == dev["serial_number"]:
                         break
@@ -149,17 +149,40 @@ class Device:
                 )
             
             self.device = hid.device()
-            logger.info(f"Connecting to device with VID={dev["vendor_id"]}, PID={dev["product_id"]}" + " & SN={dev['serial_number']}" if self.serial_number else "")
-            self.device.open(
-                dev["vendor_id"], dev["product_id"],
-                dev["serial_number"] if self.serial_number else None)
+            if self.path:
+                logger.info(f"Connecting to device at {self.path}")                
+                self.device.open_path(self.path)
+            else:
+                logger.info(f"Connecting to device with VID={dev["vendor_id"]}, PID={dev["product_id"]}" + " & SN={dev['serial_number']}" if self.serial_number else "")
+                self.device.open(
+                    dev["vendor_id"], dev["product_id"],
+                    dev["serial_number"] if self.serial_number else None)
+            self._update_info(dev)
             self.device.set_nonblocking(True)  # we'll handle waiting outselves
         else:
             self.device = file_device.FileDevice(self.hidraw)
 
+    def _update_info(self, dev_info: dict):
+        """Update the device information."""
+        for k, v in dev_info.items():
+            setattr(self, k, v)
+        self.usb_info = dev_info
+
     def _verify_open(self):
         if not self.device:
             raise DeviceClosed("This device connection is not open.")
+
+    def get_usb_info(self):
+        """Returns a dictionary containing the USB information of the device.
+        The dictionary contains the following keys:
+        - path
+        - serial_number
+        - manufacturer_string
+        - product_string
+        - vendor_id
+        - product_id
+        """
+        return self.usb_info
 
     def reconnect(self):
         """Close and reopen this device's connection using the same
@@ -274,11 +297,15 @@ class Device:
     def cmd_query(self,
                   command,
                   timeout=0,
-                  read_interval=0.05) -> list[str | int | float]:
+                  read_interval=0.05) -> str | int | float | list[str | int | float]:
         """Sends a command and tries to read a reply every read_interval 
         seconds  until one arrives, or until timeout seconds have elapsed, 
         in which case a TimeoutError is raised. The SCPI error queue is
         checked for errors and if any are found, a RuntimeError is raised.
+
+        The reply is converted to a string, int or float if possible. If the
+        reply is a comma separated list of values, each value is converted
+        individually and the list of converted values is returned.
 
         Arguments:
             command: string containing the command to send
@@ -304,7 +331,7 @@ class Device:
 
         reply = [scpi_convert(r) for r in reply]
 
-        return reply
+        return reply[0] if len(reply) == 1 else reply
 
     def __del__(self):
         self.close()
