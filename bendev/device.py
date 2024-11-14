@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 # @file device.py
 # @author Markus Führer
 # @date 7 Jan 2022
@@ -265,15 +266,13 @@ class Device:
         without sending a command, you can use the following command:
         >>> device.query(":SYST:ERR?")
         """
-        error_count = self.query(":SYST:ERR:COUNT?")
+        error_count = self.query(":SYST:ERR:COUNT?", timeout=timeout, read_interval=read_interval)
         if error_count != "0":
             error = self.query(":SYST:ERR?").split(",")
             raise SCPIError(int(error[0]), error[1])
 
     def cmd(self, command, timeout=0, read_interval=0.05):
-        """Sends a command and tries to read a reply every read_interval 
-        seconds  until one arrives, or until timeout seconds have elapsed, 
-        in which case a TimeoutError is raised. The SCPI error queue is
+        """Sends a (non-query) command to the device. The SCPI error queue is
         checked for errors and if any are found, a SCPIError is raised.
 
         Arguments:
@@ -299,7 +298,7 @@ class Device:
                   timeout=0,
                   read_interval=0.05) -> str | int | float | list[str | int | float]:
         """Sends a command and tries to read a reply every read_interval 
-        seconds  until one arrives, or until timeout seconds have elapsed, 
+        seconds until one arrives, or until timeout seconds have elapsed, 
         in which case a TimeoutError is raised. The SCPI error queue is
         checked for errors and if any are found, a RuntimeError is raised.
 
