@@ -4,10 +4,13 @@
 # @date 7 Jan 2022
 # @copyright Copyright © 2022 by Bentham Instruments Ltd.
 
+from __future__ import annotations
+
 import sys, time
 import hid  # from pip install hidapi
 import bendev.file_device as file_device
 import logging
+from typing import Union
 
 from bendev.exceptions import ExternalDeviceNotFound, DeviceClosed, SCPIError
 
@@ -17,7 +20,7 @@ _MAX_CHARACTERS = 64  # max size of USB HID packet
 logger = logging.getLogger("bendev")
 
 
-def scpi_convert(p: str) -> str | int | float:
+def scpi_convert(p: str) -> Union[str, int, float]:
     """Converts a string reply from a SCPI device to a string, int or float.
     If the string can be converted to an int, it is. If it can be converted 
     to a float, it is. Otherwise, the string is returned unaltered.
@@ -154,7 +157,7 @@ class Device:
                 logger.info(f"Connecting to device at {self.path}")                
                 self.device.open_path(self.path)
             else:
-                logger.info(f"Connecting to device with VID={dev["vendor_id"]}, PID={dev["product_id"]}" + " & SN={dev['serial_number']}" if self.serial_number else "")
+                logger.info(f'Connecting to device with VID={dev["vendor_id"]}, PID={dev["product_id"]}' + " & SN={dev['serial_number']}" if self.serial_number else "")
                 self.device.open(
                     dev["vendor_id"], dev["product_id"],
                     dev["serial_number"] if self.serial_number else None)
@@ -296,7 +299,7 @@ class Device:
     def cmd_query(self,
                   command,
                   timeout=0,
-                  read_interval=0.05) -> str | int | float | list[str | int | float]:
+                  read_interval=0.05) -> Union[str, int, float, list[Union[str, int, float]]]:
         """Sends a command and tries to read a reply every read_interval 
         seconds until one arrives, or until timeout seconds have elapsed, 
         in which case a TimeoutError is raised. The SCPI error queue is
