@@ -67,9 +67,9 @@ class Device:
                  product_id=None,
                  hidraw=None,
                  path=None):
-        """Connects to the first device matching exact serial_number (if 
-        present) or containing product_string (if present) or containing 
-        manufacturer_string. Raises ExternalDeviceNotFound exception if no 
+        """Connects to the first device matching exact system device path
+        or serial_number (if present) or containing product_string (if present)
+        or containing manufacturer_string. Raises ExternalDeviceNotFound exception if no 
         device matches.
 
         Arguments:
@@ -81,7 +81,9 @@ class Device:
             vendor_id: the vendor ID of the target device | None 
               | default 1240
             product_id: the product ID of the target device | None
-            hidraw: device path, usually in /dev | None
+            path: the (system dependent) path to the device, this is returned
+                in the dict objects supplied by list_connected_devices() | None
+            hidraw: use hidraw mode and open specified device path, usually in /dev | None
 
         Bendev identifies the correct device differently depending on which 
         arguments are provided. If multiple from the list below are
@@ -151,13 +153,16 @@ class Device:
                 raise ExternalDeviceNotFound(
                     f"Can't find device ({self.serial_number or self.product_string})"
                 )
-            
+
             self.device = hid.device()
             if self.path:
-                logger.info(f"Connecting to device at {self.path}")                
+                logger.info(f"Connecting to device at {self.path}")
                 self.device.open_path(self.path)
             else:
-                logger.info(f'Connecting to device with VID={dev["vendor_id"]}, PID={dev["product_id"]}' + " & SN={dev['serial_number']}" if self.serial_number else "")
+                logger.info(
+                    f'Connecting to device with VID={dev["vendor_id"]}, PID={dev["product_id"]}'
+                    + " & SN={dev['serial_number']}" if self.
+                    serial_number else "")
                 self.device.open(
                     dev["vendor_id"], dev["product_id"],
                     dev["serial_number"] if self.serial_number else None)
@@ -288,7 +293,7 @@ class Device:
                 Default: 0.05
         
         Returns:
-            the device reply as a string
+            None
         """
         self.write(command)
         try:
@@ -300,14 +305,16 @@ class Device:
                   command,
                   timeout=0,
                   read_interval=0.05) -> Union[str, int, float, list[Union[str, int, float]]]:
-        """Sends a command and tries to read a reply every read_interval 
+        """Sends a single command and tries to read a reply every read_interval 
         seconds until one arrives, or until timeout seconds have elapsed, 
         in which case a TimeoutError is raised. The SCPI error queue is
-        checked for errors and if any are found, a RuntimeError is raised.
+        checked for errors and if any are found, a SCPIError is raised.
 
         The reply is converted to a string, int or float if possible. If the
         reply is a comma separated list of values, each value is converted
         individually and the list of converted values is returned.
+
+        This command should only be used with a single query command.
 
         Arguments:
             command: string containing the command to send
