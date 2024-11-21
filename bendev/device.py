@@ -173,8 +173,6 @@ class Device:
 
     def _update_info(self, dev_info: dict):
         """Update the device information."""
-        for k, v in dev_info.items():
-            setattr(self, k, v)
         self.usb_info = dev_info
 
     def _verify_open(self):
@@ -274,7 +272,9 @@ class Device:
         without sending a command, you can use the following command:
         >>> device.query(":SYST:ERR?")
         """
-        error_count = self.query(":SYST:ERR:COUNT?", timeout=timeout, read_interval=read_interval)
+        error_count = self.query(":SYST:ERR:COUNT?",
+                                 timeout=timeout,
+                                 read_interval=read_interval)
         if error_count != "0":
             error = self.query(":SYST:ERR?").split(",")
             raise SCPIError(int(error[0]), error[1])
@@ -301,10 +301,12 @@ class Device:
         except SCPIError as e:
             raise e
 
-    def cmd_query(self,
-                  command,
-                  timeout=0,
-                  read_interval=0.05) -> Union[str, int, float, list[Union[str, int, float]]]:
+    def cmd_query(
+        self,
+        command,
+        timeout=0,
+        read_interval=0.05
+    ) -> Union[str, int, float, list[Union[str, int, float]]]:
         """Sends a single command and tries to read a reply every read_interval 
         seconds until one arrives, or until timeout seconds have elapsed, 
         in which case a TimeoutError is raised. The SCPI error queue is
