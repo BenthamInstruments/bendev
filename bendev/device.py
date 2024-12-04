@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*-
+# -*- coding:utf-8 -*-
 # @file device.py
 # @author Markus Führer
 # @date 7 Jan 2022
@@ -10,6 +11,7 @@ import sys, time
 import hid  # from pip install hidapi
 import bendev.file_device as file_device
 import logging
+import re
 from typing import Union
 
 from bendev.exceptions import ExternalDeviceNotFound, DeviceClosed, SCPIError
@@ -18,6 +20,11 @@ _ON_WINDOWS = (sys.platform == "win32")
 _MAX_CHARACTERS = 64  # max size of USB HID packet
 
 logger = logging.getLogger("bendev")
+
+
+def contains_unquoted_semicolon(s):
+    pattern = r';(?=(?:[^"]*"[^"]*")*[^"]*$)'
+    return bool(re.search(pattern, s))
 
 
 def scpi_convert(p: str) -> Union[str, int, float]:
@@ -279,7 +286,7 @@ class Device:
         return self.read(read_interval=read_interval, timeout=timeout)
 
     def check_scpi_error(self, timeout=0, read_interval=0.05):
-        """Checks the SCPI error queue for errors and raises a RuntimeError if
+        """Checks the SCPI error queue for errors and raises a SCPIError if
         any are found. This function is called automatically after each 
         command sent to the device. If you want to check the error queue 
         without sending a command, you can use the following command:
@@ -292,7 +299,7 @@ class Device:
             error = self.query(":SYST:ERR?").split(",")
             raise SCPIError(int(error[0]), error[1])
 
-    def cmd(self, command, timeout=0, read_interval=0.05):
+    def write_check(self, command, timeout=0, read_interval=0.05):
         """Sends a (non-query) command to the device. The SCPI error queue is
         checked for errors and if any are found, a SCPIError is raised.
 
@@ -308,13 +315,17 @@ class Device:
         Returns:
             None
         """
+        if contains_unquoted_semicolon(command):
+            raise ValueError(
+                "Compound commands are not supported by this function.")
+
         self.write(command)
         try:
             self.check_scpi_error(timeout=timeout, read_interval=read_interval)
         except SCPIError as e:
             raise e
 
-    def cmd_query(
+    def query_check(
         self,
         command,
         timeout=0,
@@ -343,6 +354,9 @@ class Device:
         Returns:
             the device reply as a string
         """
+        if contains_unquoted_semicolon(command):
+            raise ValueError(
+                "Compound commands are not supported by this function.")
         reply = self.query(command,
                            timeout=timeout,
                            read_interval=read_interval)
