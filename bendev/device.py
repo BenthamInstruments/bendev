@@ -1,5 +1,4 @@
 # -*- coding:utf-8 -*-
-# -*- coding:utf-8 -*-
 # @file device.py
 # @author Markus Führer
 # @date 7 Jan 2022
