@@ -210,7 +210,8 @@ class Device:
         commands that are too long.
 
         Arguments:
-            command: python string containing the command
+            command: string or bytearray, usually a string containing the command but
+                can also be a bytearray of raw 8-bit data to send.
 
         Returns:
             None
@@ -220,13 +221,19 @@ class Device:
             raise IOError(
                 f"Tried to send {len(command)} characters, max is {_MAX_CHARACTERS}"
             )
-        logger.debug(f">>> {command}")
-        if _ON_WINDOWS:
-            command = "\x00" + command  # hidapi calls on Windows require leading 0.
-            #(arg may be _MAX_CHARACTERS+1 chars in that case, that's ok)
-        self.device.write(command.encode(self.encoding))
 
-    def read(self, timeout, read_interval):
+        if isinstance(command, str):
+            logger.debug(f">>> {command}")
+            command = command.encode(self.encoding)
+        else:
+            logger.debug(f">>> Sent {len(command)} bytes of raw data")
+
+        if _ON_WINDOWS:
+            command = b"\x00" + command  # hidapi calls on Windows require leading 0.
+            #(arg may be _MAX_CHARACTERS+1 chars in that case, that's ok)
+        self.device.write(command)
+
+    def read(self, timeout, read_interval, raw=False):
         """Reads every read_interval seconds until the device sends a message,
         or until timeout seconds have elapsed, in which case a TimeoutError 
         is raised.
@@ -236,9 +243,11 @@ class Device:
                 if no message is received. 0 or None means never time out.
             read_interval: number, time in seconds to sleep between attempts 
                 to read
+            raw: boolean, if True, the raw bytes are returned, otherwise the
+                bytes are decoded using the encoding set at initialisation.
         
         Returns:
-            the device reply as a string
+            the device reply as a string, or bytes if raw is True
         """
         self._verify_open()
         read_start_time = time.time()
@@ -247,6 +256,10 @@ class Device:
             if (timeout != 0) and time.time() - read_start_time > timeout:
                 raise TimeoutError(
                     f"Device failed to respond in {timeout} seconds")
+        if raw:
+            logger.debug(f"<<< Received {len(block)} bytes of raw data")
+            return block
+
         data = bytes(block).decode(self.encoding).rstrip("\r\n\x00")
         logger.debug(f"<<< {data}")
         return data
