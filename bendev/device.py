@@ -227,6 +227,7 @@ class Device:
             command = command.encode(self.encoding)
         else:
             logger.debug(f">>> Sent {len(command)} bytes of raw data")
+            command = bytes(command)
 
         if self.hidraw is None:
             command = b"\x00" + command  # hidapi write() requires a leading report-ID byte (0x00 = default).
