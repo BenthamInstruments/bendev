@@ -228,8 +228,8 @@ class Device:
         else:
             logger.debug(f">>> Sent {len(command)} bytes of raw data")
 
-        if _ON_WINDOWS:
-            command = b"\x00" + command  # hidapi calls on Windows require leading 0.
+        if self.hidraw is None:
+            command = b"\x00" + command  # hidapi write() requires a leading report-ID byte (0x00 = default).
             #(arg may be _MAX_CHARACTERS+1 chars in that case, that's ok)
         self.device.write(command)
 
