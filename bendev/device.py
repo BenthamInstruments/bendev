@@ -299,7 +299,7 @@ class Device:
             error = self.query(":SYST:ERR?").split(",")
             raise SCPIError(int(error[0]), error[1])
 
-    def write_check(self, command, timeout=0, read_interval=0.05, wait_after_write=0.05):
+    def write_check(self, command, timeout=0, read_interval=0.05, wait_after_write=0.0):
         """Sends a (non-query) command to the device. The SCPI error queue is
         checked for errors and if any are found, a SCPIError is raised.
 
@@ -313,7 +313,7 @@ class Device:
                 Default: 0.05
             wait_after_write: number, time in seconds to wait after writing the command
                 before checking for errors.
-                Default: 0.05
+                Default: 0.0
         
         Returns:
             None
@@ -323,7 +323,9 @@ class Device:
                 "Compound commands are not supported by this function.")
 
         self.write(command)
-        time.sleep(wait_after_write)
+        if wait_after_write > 0:
+            time.sleep(wait_after_write)
+
         try:
             self.check_scpi_error(timeout=timeout, read_interval=read_interval)
         except SCPIError as e:
