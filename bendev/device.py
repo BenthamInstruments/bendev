@@ -313,7 +313,7 @@ class Device:
                 Default: 0.05
             wait_after_write: number, time in seconds to wait after writing the command
                 before checking for errors.
-                Default: 0.05
+                Default: 0.0
         
         Returns:
             None
